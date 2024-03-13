@@ -480,6 +480,19 @@ namespace LL {
 }
 
 namespace BB {
+    template<typename K,typename V>
+    
+    /**
+    Key Value pair
+    */
+    struct BB_KV_P{
+        std::shared_ptr<K> key;
+        std::shared_ptr<V> value;
+        BB_KV_P(std::shared_ptr<K> key,std::shared_ptr<V> value):key(key),value(value){
+
+        }
+    };
+
     enum BalanceCase{
         DO_NOTHING,
 
@@ -1189,6 +1202,64 @@ namespace BB {
         RETURN_NULL:
         return NULL;
     }
+
+
+    template<typename K,typename V>
+    static std::shared_ptr<std::vector<std::shared_ptr<BB_KV_P<K,V>>>> searchForRangeWithPaginationKVP( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,int offset=0,int limit=-1,std::shared_ptr<K> startKey=NULL,std::shared_ptr<K> endKey=NULL){
+        auto startNode= !startKey? tree->left_most_node :  BB::searchForLeafNode(tree, compare, startKey);
+        auto endNode= !endKey? tree->right_most_node: BB::searchForLeafNode(tree, compare, endKey);
+        auto currentNode = startNode;
+
+        int skip=0;
+        int count=0;
+
+        std::shared_ptr<std::vector<std::shared_ptr<BB_KV_P<K,V>>>> result(new std::vector<std::shared_ptr<BB_KV_P<K,V>>>());
+
+        if(startNode!=endNode){
+            while(currentNode!=endNode){
+                auto sk = !startKey?NULL: createBPlusCell<K>(startKey, NULL, NULL);
+                auto ek = !endKey? NULL: createBPlusCell<K>(endKey, NULL, NULL);
+                if(currentNode && currentNode->cellsList){
+                    std::shared_ptr<std::vector<std::shared_ptr<BPlusCell<K>>>>  st1 = LL::searchTillStream<BPlusCell<K>>(currentNode->cellsList, compare, sk, ek);
+                    for(std::shared_ptr<BPlusCell<K>> &n1 : *st1){
+                        if(skip>=offset){
+                            if(count==limit){
+                                break;
+                            }
+                            count++;
+                            auto kvp = std::shared_ptr<BB_KV_P<K,V>>(new BB_KV_P<K,V>(n1->key,std::static_pointer_cast<V>(n1->value)));
+                            result->push_back(kvp);
+                        }else{
+                            skip++;
+                        }
+                    }
+                    currentNode = currentNode->rightSibling.lock();
+                }
+            }
+        }
+        if(currentNode && currentNode==endNode){
+            auto sk = !startKey?NULL: createBPlusCell<K>(startKey, NULL, NULL);
+            auto ek = !endKey? NULL: createBPlusCell<K>(endKey, NULL, NULL);
+            if(currentNode && currentNode->cellsList){
+                auto st1 = LL::searchTillStream<BPlusCell<K>>(currentNode->cellsList, compare, sk, ek);
+                for(auto n1 : *st1){
+                    if(skip>=offset) {
+                        if (count == limit) {
+                            break;
+                        }
+                        count++;
+                        auto kvp = std::shared_ptr<BB_KV_P<K,V>>(new BB_KV_P<K,V>(n1->key,std::static_pointer_cast<V>(n1->value)));
+                        result->push_back(kvp);
+                    }else{
+                        skip++;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
 }
 #endif // !BTREE
 
