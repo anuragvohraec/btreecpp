@@ -918,7 +918,7 @@ namespace BB {
     }
 
     template<typename K>
-    static std::shared_ptr<std::vector<K>> searchForRangeWithPagination( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,int offset=0,int limit=-1,std::shared_ptr<K> startKey=NULL,std::shared_ptr<K> endKey=NULL){
+    static std::shared_ptr<std::vector<std::shared_ptr<K>>> searchForRangeWithPagination( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,int offset=0,int limit=-1,std::shared_ptr<K> startKey=NULL,std::shared_ptr<K> endKey=NULL){
         auto startNode= !startKey? tree->left_most_node :  BB::searchForLeafNode(tree, compare, startKey);
         auto endNode= !endKey? tree->right_most_node: BB::searchForLeafNode(tree, compare, endKey);
         auto currentNode = startNode;
@@ -926,7 +926,7 @@ namespace BB {
         int skip=0;
         int count=0;
 
-        std::shared_ptr<std::vector<K>> result(new std::vector<K>());
+        std::shared_ptr<std::vector<std::shared_ptr<K>>> result(new std::vector<std::shared_ptr<K>>());
 
         if(startNode!=endNode){
             while(currentNode!=endNode){
@@ -940,7 +940,7 @@ namespace BB {
                                 break;
                             }
                             count++;
-                            result->push_back(*n1->key);
+                            result->push_back(n1->key);
                         }else{
                             skip++;
                         }
@@ -960,7 +960,7 @@ namespace BB {
                             break;
                         }
                         count++;
-                        result->push_back(*n1->key);
+                        result->push_back(n1->key);
                     }else{
                         skip++;
                     }
@@ -1027,8 +1027,8 @@ namespace BB {
 
 
     template<typename K>
-    static std::shared_ptr<std::vector<K>> find( std::shared_ptr<BPlusTree<K>> tree,  ComparatorFunction<BPlusCell<K>>  compare ,  ComparatorFunction<BPlusCell<K>> queryComparator,std::shared_ptr<K> bookmark_key=NULL, bool yieldIndividualDuplicates=false){
-        std::shared_ptr<std::vector<K>> result(new std::vector<K>());
+    static std::shared_ptr<std::vector<std::shared_ptr<K>>> find( std::shared_ptr<BPlusTree<K>> tree,  ComparatorFunction<BPlusCell<K>>  compare ,  ComparatorFunction<BPlusCell<K>> queryComparator,std::shared_ptr<K> bookmark_key=NULL, bool yieldIndividualDuplicates=false){
+        std::shared_ptr<std::vector<std::shared_ptr<K>>> result(new std::vector<std::shared_ptr<K>>());
 
         //will find leaf node with the same comparator as tree.
         std::shared_ptr<BPlusNode<K>> found_leaf_node;
@@ -1066,7 +1066,7 @@ namespace BB {
                     }
                     auto searchKeyCurrentNode = queryComparator(createBPlusCell(avlnode->key),createBPlusCell(avlnode->key));
                     if(searchKeyCurrentNode==0){
-                        result->push_back(*avlnode->key);
+                        result->push_back(avlnode->key);
                     }
                 }
                 found_leaf_node = found_leaf_node->rightSibling;
