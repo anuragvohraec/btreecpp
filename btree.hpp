@@ -917,6 +917,21 @@ namespace BB {
         return NULL;
     }
 
+    template<typename K, typename V>
+    static std::shared_ptr<BB_KV_P<K,V>> searchForKV( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,std::shared_ptr<K> searchKey,SearchType searchType = SearchType::EqualsTo){
+        auto leafNode = BB::searchForLeafNode(tree, compare, searchKey);
+        if(leafNode){
+            if(leafNode->cellsList){
+                auto foundLinkedNode = LL::search<BPlusCell<K>>(leafNode->cellsList, compare, createBPlusCell<K>(searchKey, NULL, NULL), searchType);
+                if(foundLinkedNode){
+                    auto kvp = std::shared_ptr<BB_KV_P<K,V>>(new BB_KV_P<K,V>(foundLinkedNode->key->key,std::static_pointer_cast<V>(foundLinkedNode->key->value)));
+                    return kvp;
+                }
+            }
+        }
+        return NULL;
+    }
+
     template<typename K>
     static std::shared_ptr<std::vector<std::shared_ptr<K>>> searchForRangeWithPagination( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,int offset=0,int limit=-1,std::shared_ptr<K> startKey=NULL,std::shared_ptr<K> endKey=NULL){
         auto startNode= !startKey? tree->left_most_node :  BB::searchForLeafNode(tree, compare, startKey);
