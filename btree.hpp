@@ -1,4 +1,5 @@
 
+#include <cstddef>
 #include <exception>
 #include <memory>
 #include <sys/types.h>
@@ -186,7 +187,9 @@ struct BPlusTree{
 enum SearchType{
   LesserThanOrEqualsTo,
   EqualsTo,
-  GreaterThanOrEqualsTo
+  GreaterThanOrEqualsTo,
+    LesserThan,
+  GreaterThan
 };
 
 namespace LL {
@@ -203,17 +206,21 @@ namespace LL {
             while (current_node) {
                 auto compareResult = compare(searchKey, current_node->key);
                 if (compareResult == 0) {
-                //found an exact match;
-                eq = current_node;
-                break;
+                    //found an exact match;
+                    if(searchType == SearchType::GreaterThan){
+                        current_node = current_node->rightSibling;
+                    }else{
+                        eq = current_node;
+                        break;
+                    }
                 } else if (compareResult > 0) {
-                //search key is bigger than current
-                lte = current_node;
-                current_node = current_node->rightSibling;
+                    //search key is bigger than current
+                    lte = current_node;
+                    current_node = current_node->rightSibling;
                 } else {
-                //search key is smaller than current
-                gte = current_node;
-                break;
+                    //search key is smaller than current
+                    gte = current_node;
+                    break;
                 }
             }
 
@@ -221,6 +228,8 @@ namespace LL {
                 case SearchType::LesserThanOrEqualsTo: return eq? eq : lte;
                 case SearchType::EqualsTo: return eq;
                 case SearchType::GreaterThanOrEqualsTo: return eq? eq : gte;
+                case SearchType::LesserThan: lte;
+                case SearchType::GreaterThan: gte;
             }
         }
         return NULL;
@@ -921,12 +930,27 @@ namespace BB {
     static std::shared_ptr<BB_KV_P<K,V>> searchForKV( std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,std::shared_ptr<K> searchKey,SearchType searchType = SearchType::EqualsTo){
         auto leafNode = BB::searchForLeafNode(tree, compare, searchKey);
         if(leafNode){
+            auto sk = createBPlusCell<K>(searchKey, NULL, NULL);
             if(leafNode->cellsList){
-                auto foundLinkedNode = LL::search<BPlusCell<K>>(leafNode->cellsList, compare, createBPlusCell<K>(searchKey, NULL, NULL), searchType);
-                if(foundLinkedNode){
-                    auto kvp = std::shared_ptr<BB_KV_P<K,V>>(new BB_KV_P<K,V>(foundLinkedNode->key->key,std::static_pointer_cast<V>(foundLinkedNode->key->value)));
-                    return kvp;
+                while(leafNode!=NULL){
+                    auto foundLinkedNode = LL::search<BPlusCell<K>>(leafNode->cellsList, compare, sk, searchType);
+
+                    if(foundLinkedNode){
+                        auto kvp = std::shared_ptr<BB_KV_P<K,V>>(new BB_KV_P<K,V>(foundLinkedNode->key->key,std::static_pointer_cast<V>(foundLinkedNode->key->value)));
+                        return kvp;
+                    }else{
+                        if(searchType == SearchType::LesserThan){
+                            //move to left node
+                            leafNode = leafNode->leftSibling.lock();
+                        }else if(searchType == SearchType::GreaterThan){
+                            //move to right node
+                            leafNode = leafNode->rightSibling.lock();
+                        }else{
+                            break;
+                        }
+                    }
                 }
+                
             }
         }
         return NULL;
