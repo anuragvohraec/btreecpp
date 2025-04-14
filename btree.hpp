@@ -228,8 +228,8 @@ namespace LL {
                 case SearchType::LesserThanOrEqualsTo: return eq? eq : lte;
                 case SearchType::EqualsTo: return eq;
                 case SearchType::GreaterThanOrEqualsTo: return eq? eq : gte;
-                case SearchType::LesserThan: lte;
-                case SearchType::GreaterThan: gte;
+                case SearchType::LesserThan: return lte;
+                case SearchType::GreaterThan: return gte;
             }
         }
         return NULL;
