@@ -1214,6 +1214,23 @@ namespace BB {
     }
 
     template<typename K>
+    static std::shared_ptr<void> deleteKeyReturnValue(std::shared_ptr<BPlusTree<K>> tree, ComparatorFunction<BPlusCell<K>>  compare,std::shared_ptr<K> key) {
+        if(!tree->root_node){
+        tree->size=0;
+        return NULL;
+        }else{
+        auto leafNode = BB::searchForLeafNode(tree, compare, key);
+        auto deletedNode =  LL::deleteNode(leafNode->cellsList, compare, createBPlusCell<K>(key,NULL,NULL));
+        if(deletedNode){
+            tree->size=tree->size-(1+deletedNode->duplicate_count);
+            BB::balance(tree, leafNode, compare);
+            return deletedNode->key->value;
+        }
+        }
+        return NULL;
+    }
+
+    template<typename K>
     static uint64_t getSize(std::shared_ptr<BPlusTree<K>> tree){
         return tree->size;
     }
